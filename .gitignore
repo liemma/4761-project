@@ -1,0 +1,9 @@
+/.venv/
+/data/abc_atlas/
+/data/*.h5ad
+/data/*.h5ad.*
+/notebooks/.ipynb_checkpoints/
+/src/spatial_mrf.egg-info/
+**/__pycache__/
+.DS_Store
+
