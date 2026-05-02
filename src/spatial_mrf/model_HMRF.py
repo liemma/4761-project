@@ -121,7 +121,7 @@ class AW_HMRF:
                 self.mu[k] = global_mu
                 self.sigma[k] = global_sigma
 
-    def _icm_step(self, embeddings: np.ndarray, states: np.ndarray, W: sp.csr_matrix) -> np.ndarray:
+    def _icm_step(self, embeddings: np.ndarray, states: np.ndarray, W: sp.csr_matrix) -> tuple[np.ndarray, float]:
         """Iterated Conditional Modes"""
         n_cells = embeddings.shape[0]
         

@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 
+
 def validate_weight_matrix(weight_matrix: np.ndarray) -> np.ndarray:
     """Validate and return a symmetric nonnegative weight matrix."""
     matrix = np.asarray(weight_matrix, dtype=float)
@@ -26,3 +27,5 @@ def normalize_weights(weight_matrix: np.ndarray, eps: float = 1e-12) -> np.ndarr
     normalized = np.divide(matrix, row_sums + eps, where=row_sums > 0)
     normalized[row_sums.squeeze(axis=1) == 0] = 0.0
     return normalized
+
+
