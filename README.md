@@ -50,6 +50,8 @@ This repository contains a Python implementation of an anatomy-weighted Hidden M
 - `notebooks/`
   Exploratory notebooks for preprocessing, analysis, and plotting. These are not required to run the packaged script.
 
+  Also, notebooks hippocampus_eval.ipynb and Eval_whole_section.ipynb provide analysis and visualization of gene expression features of AW-HMRF clustering and parcellation, which is worth playing around with.
+
 ## System Requirements
 
 ### Python version
