@@ -1,13 +1,33 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 
-def plot_energy_history(result):
-    plt.figure(figsize=(8, 4))
-    plt.plot(range(1, len(result.energy_history) + 1), result.energy_history, marker='o', color='#2c3e50')
-    plt.title("AW-HMRF Convergence: Total Gibbs Energy")
-    plt.xlabel("EM Iterations")
-    plt.ylabel("Total Energy (Unary + Weighted Pairwise)")
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.show()
+
+def plot_energy_history(result, save_path=None, show=True):
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.plot(
+        range(1, len(result.energy_history) + 1),
+        result.energy_history,
+        marker='o',
+        color='#2c3e50',
+    )
+    ax.set_title("AW-HMRF Convergence: Total Gibbs Energy")
+    ax.set_xlabel("EM Iterations")
+    ax.set_ylabel("Total Energy (Unary + Weighted Pairwise)")
+    ax.grid(True, linestyle='--', alpha=0.6)
+    fig.tight_layout()
+
+    if save_path is not None:
+        save_path = Path(save_path)
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(save_path, dpi=200, bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+    return fig
 
 # evaluation.py
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+from pathlib import Path
 
 
 
@@ -193,6 +194,7 @@ def align_visualization_colors(adata, target_col, reference_col):
 
 import pandas as pd
 import scanpy as sc
+import matplotlib.pyplot as plt
 from spatial_mrf.utils import remap_clusters_to_atlas, align_visualization_colors
 
 
@@ -205,6 +207,8 @@ def plot_hmrf_spatial_results(
     do_remap=True,
     do_color_align=True,
     figsize=None,
+    output_dir=None,
+    show=True,
 ):
     """
     Visualize HMRF spatial results across beta values.
@@ -259,5 +263,23 @@ def plot_hmrf_spatial_results(
             title=f"HMRF Spatial Domains (beta={beta})",
             spot_size=spot_size,
             frameon=False,
-            show=True
+            show=False
         )
+
+        fig = plt.gcf()
+        if figsize is not None:
+            fig.set_size_inches(*figsize)
+
+        if output_dir is not None:
+            out_dir = Path(output_dir)
+            out_dir.mkdir(parents=True, exist_ok=True)
+            fig.savefig(
+                out_dir / f"spatial_beta-{beta}.png",
+                dpi=200,
+                bbox_inches="tight",
+            )
+
+        if show:
+            plt.show()
+        else:
+            plt.close(fig)

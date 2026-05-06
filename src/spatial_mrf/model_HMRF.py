@@ -45,7 +45,12 @@ class AW_HMRF:
         self.mu = None
         self.sigma = None
 
-    def fit(self, embeddings: np.ndarray, weight_matrix: sp.spmatrix) -> HMRFResult:
+    def fit(
+        self,
+        embeddings: np.ndarray,
+        weight_matrix: sp.spmatrix,
+        initial_states: np.ndarray | None = None,
+    ) -> HMRFResult:
         """
         Fit the HMRF model using Expectation(ICM)-Maximization.
         
@@ -59,9 +64,7 @@ class AW_HMRF:
             weight_matrix = weight_matrix.tocsr()
         weight_matrix = self._validate_weight_matrix(weight_matrix, n_cells=n_cells)
 
-        # K-means initialization for states
-        kmeans = KMeans(n_clusters=self.K, n_init=10, random_state=self.random_state)
-        states = kmeans.fit_predict(embeddings)
+        states = self._initialize_states(embeddings, initial_states)
         
         # parameters initialization (can be updated in the M-step)
         self.mu = np.zeros((self.K, d_features))
@@ -102,6 +105,26 @@ class AW_HMRF:
             converged=converged,
             n_iter=em_iter,
         )
+
+    def _initialize_states(
+        self,
+        embeddings: np.ndarray,
+        initial_states: np.ndarray | None,
+    ) -> np.ndarray:
+        if initial_states is None:
+            kmeans = KMeans(n_clusters=self.K, n_init=10, random_state=self.random_state)
+            return kmeans.fit_predict(embeddings)
+
+        states = np.asarray(initial_states, dtype=int)
+        if states.shape != (embeddings.shape[0],):
+            raise ValueError("initial_states must be a vector of length N_cells")
+        if np.any(states < 0):
+            raise ValueError("initial_states cannot contain negative labels")
+        if states.size == 0:
+            raise ValueError("initial_states cannot be empty")
+        if np.max(states) >= self.K:
+            raise ValueError("initial_states labels must be in the range [0, n_regions - 1]")
+        return states.copy()
 
     def _m_step(self, embeddings: np.ndarray, states: np.ndarray) -> None:
         """parameter estimation (MLE)"""
