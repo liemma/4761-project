@@ -134,6 +134,7 @@ This uses:
 - coordinate key: `spatial`
 - label key: `parcellation_division`
 
+
 ### Expected sample output
 
 The command creates a folder under `outputs/` named from the run parameters, for example:
@@ -317,3 +318,5 @@ After a run finishes, the easiest checks are:
 - This repository does not currently provide a separate unit-test suite for the AW-HMRF workflow.
 - The closest thing to a smoke test is a successful run of `scripts/run_aw_hmrf_once.py` on `data/adata_sub.h5ad`.
 - The notebooks are useful for analysis and figure generation, but the main packaged functionality is the single-run experiment script plus the model/evaluation utilities it calls.
+- Input file can be found: https://drive.google.com/drive/folders/1x53B99t8_zQT6-XRPv0exo2rGay_WBVZ?usp=drive_link; Those are data embedded with PCA, for raw MERFISH data: https://alleninstitute.github.io/abc_atlas_access/notebooks/zhuang_merfish_tutorial.html
+
