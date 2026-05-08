@@ -1,322 +1,272 @@
-# 4761 Project: Anatomy-Weighted HMRF
+# 4761 Project: Spatial MRF / Anatomy-Weighted HMRF (AW-HMRF)
 
-This repository contains a Python implementation of an anatomy-weighted Hidden Markov Random Field (AW-HMRF) workflow for spatial transcriptomics data stored as `AnnData` (`.h5ad`) files. The main packaged workflow is a single-run experiment script that:
+This repository contains a Python implementation of spatial Markov Random Field models for spatial transcriptomics, with a focus on an **Anatomy-Weighted Hidden Markov Random Field (AW-HMRF)** for MERFISH/Allen ABC Atlas-style data stored as **`AnnData` (`.h5ad`)**.
 
-- loads an input `.h5ad`
-- builds an anatomy-weighted spatial kNN graph
-- initializes clusters with `kmeans` or `leiden`
-- treats the initialization as a baseline
-- runs AW-HMRF refinement
-- evaluates baseline and HMRF outputs
-- saves tables, plots, state assignments, and optionally an output `.h5ad`
+There are two “entry points” you can run:
 
-## What Each File Is
+- **Notebook workflows** under `notebooks/` (recommended for exploration + figures)
+- A **single-run experiment script** `scripts/run_aw_hmrf_once.py` (recommended for reproducible runs + saving outputs)
 
-### Main packaged workflow
+There is **no compilation step**; this is a pure Python project.
 
-- `scripts/run_aw_hmrf_once.py`
-  Main entry point. Runs one full experiment on one input `.h5ad` and writes outputs to a parameter-named folder under `outputs/`.
+## Repository Structure (what every file/folder is)
 
-### Core model code
+### Core package (`src/spatial_mrf/`)
 
-- `src/spatial_mrf/model_HMRF.py`
-  AW-HMRF model implementation with Gaussian emissions, EM/ICM optimization, configurable initialization, and energy tracking.
+- `src/spatial_mrf/model.py`: **Binary** spatial MRF baseline (`BinarySpatialMRF`) with ICM inference.
+- `src/spatial_mrf/model_HMRF.py`: **Multi-class AW-HMRF** (`AW_HMRF`) using Gaussian emissions and an EM-style loop with an ICM E-step.
+- `src/spatial_mrf/utils.py`: Helper utilities used by the runner (graph building, Hungarian remapping, plotting helpers). (This file currently mixes several utilities in one place.)
+- `src/spatial_mrf/metrics.py`: Metric helpers (ARI, NMI, purity, silhouette, spatial consistency).
+- `src/spatial_mrf/evaluation.py`: Evaluation wrapper + energy-history plotting.
+- `src/spatial_mrf/__init__.py`: Package exports.
 
-- `src/spatial_mrf/utils.py`
-  Utility functions for building the anatomy-weighted graph, remapping clusters to atlas labels, aligning colors, and saving spatial plots.
+**Generated / local-only (not meant to be committed):**
 
-- `src/spatial_mrf/evaluation.py`
-  Evaluation helpers and energy-history plotting.
+- `src/spatial_mrf/__pycache__/`: Python bytecode cache.
+- `src/spatial_mrf.egg-info/`: editable install metadata (created by `pip install -e .`).
 
-- `src/spatial_mrf/metrics.py`
-  Metric implementations: ARI, NMI, purity, homogeneity, completeness, silhouette, and spatial consistency.
+### Scripts (`scripts/`)
 
-### Other scripts
+- `scripts/run_aw_hmrf_once.py`: Main reproducible runner. Loads an input `.h5ad`, builds an anatomy-weighted spatial kNN graph, runs a baseline clustering, runs AW-HMRF refinement, evaluates, and saves outputs.
+- `scripts/demo_spatial_mrf.py`: Small toy demo for the **binary** MRF (`BinarySpatialMRF`).
+- `scripts/check_dependencies.py`: Quick import/version check for common dependencies.
 
-- `scripts/check_dependencies.py`
-  Small dependency checker.
+### Notebooks (`notebooks/`)
 
-- `scripts/demo_spatial_mrf.py`
-  Lightweight toy demo for the older binary spatial MRF code path.
+Notebooks are used for exploration, preprocessing, and plots. Common ones:
 
-### Data and notebooks
+- `notebooks/MERFISH.ipynb`: Load MERFISH / Allen ABC Atlas cached files, build an `AnnData` for a slice/section, and explore.
+- `notebooks/exploreAllen.ipynb`: Explore the Allen `abc_atlas_access` cache/manifests and inspect metadata.
+- `notebooks/aw_hmrf_toy.ipynb` (or `aw_hmrf.ipynb`): Toy end-to-end sanity check for AW-HMRF.
+- `notebooks/aw_hmrf_data.ipynb`, `notebooks/Eval_whole_section.ipynb`, `notebooks/hippocampus_eval.ipynb`: Analysis/visualization notebooks (project-specific).
 
-- `data/adata_sub.h5ad`
-  Default sample input used by the packaged AW-HMRF runner.
+Jupyter also creates:
 
-- `data/adata_HPF.h5ad`, `data/Zhuang_1080_embedded.h5ad`
-  Other local `.h5ad` inputs used in experiments.
+- `notebooks/.ipynb_checkpoints/`: auto-saved checkpoints (ignored by `.gitignore`).
 
-- `notebooks/`
-  Exploratory notebooks for preprocessing, analysis, and plotting. These are not required to run the packaged script.
+### Data (`data/`)
 
-  Also, notebooks hippocampus_eval.ipynb and Eval_whole_section.ipynb provide analysis and visualization of gene expression features of AW-HMRF clustering and parcellation, which is worth playing around with.
+- `data/merfish_download.py`: Minimal example of using `abc_atlas_access` to fetch cached files.
+- `data/abc_atlas/`: Local Allen ABC Atlas cache directory (large; ignored by `.gitignore`).
+- `data/*.h5ad`: Local experiment artifacts / intermediate `AnnData` files (ignored by `.gitignore`).
+
+### Docs (`docs/`)
+
+- `docs/project-proposal.md`: project proposal/notes.
+- `docs/spatial-mrf-method.md`: math writeup for the spatial MRF idea.
+- `docs/mrf-quickstart.md`: quickstart notes.
 
 ## System Requirements
 
-### Python version
+### Python
 
-- Python `>= 3.10`
-
-### Core runtime dependencies
-
-From `pyproject.toml` and `requirements.txt`:
-
-- `numpy>=1.26`
-- `pandas>=2.2`
-- `matplotlib>=3.8`
-- `scipy>=1.12`
-- `scikit-learn>=1.4`
-
-### Extra dependencies needed for the packaged AW-HMRF runner
-
-The main runner also uses:
-
-- `anndata>=0.10`
-- `scanpy>=1.10`
-- `python-igraph>=0.11`
-- `leidenalg>=0.10`
-
-These are listed in `requirements-notebooks.txt` because the same environment is also used by the notebooks.
+- **Python >= 3.10** (tested with newer Python as well)
 
 ### Hardware
 
-No GPU is required. Current experiments are CPU-based.
+- CPU-only (no GPU required).
+- RAM guidance (very approximate):
+  - **Toy / small slice**: 8–16 GB
+  - **Large sections / many cells**: 32 GB+ recommended (graph + embeddings + AnnData can be big)
 
-Recommended:
+## Dependencies and Installation
 
-- for sample-size runs such as `data/adata_sub.h5ad`: a normal laptop or workstation is fine
-- for larger `.h5ad` files: a machine with more RAM is recommended because the workflow loads the full `AnnData`, embedding matrix, and spatial graph in memory
+### Step-by-step installation (venv + pip)
 
-Practical guidance:
+From the repo root, run these commands in order (each on its own line):
 
-- sample experiments: 8 GB to 16 GB RAM is usually enough
-- larger experiments: 32 GB RAM or more is safer
+1. `python3 -m venv .venv`
 
-## Installation
+2. `source .venv/bin/activate`
 
-There is no compilation step. This is a Python project.
+3. `pip install -U pip`
 
-Create an environment and install dependencies:
+4. `pip install -r requirements.txt`
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -U pip
-pip install -e .
-pip install -r requirements-notebooks.txt
-```
+5. `pip install -r requirements-notebooks.txt`
 
-If you only want the base package code and not the full AW-HMRF runner, `pip install -e .` is enough. For the packaged runner, `requirements-notebooks.txt` is effectively required because it includes `scanpy` and `leidenalg`.
+6. `pip install -e .`
 
-## Sample Test Run
+### Optional: register your venv as a Jupyter kernel
 
-This is the simplest end-to-end run on the included sample input:
+Steps:
 
-```bash
-python3 scripts/run_aw_hmrf_once.py \
-  --beta 20 \
-  --label-key parcellation_division \
-  --n-regions 15 \
-  --init-method kmeans \
-  --k 8 \
-  --alpha 0.2 \
-  --max-em-iter 10 \
-  --max-icm-iter 5 \
-  --random-state 0 \
-  --save-adata
-```
+1. `source .venv/bin/activate`
 
-This uses:
+2. `pip install -U ipykernel`
 
-- input file: `data/adata_sub.h5ad`
-- embedding key: `X_pca`
-- coordinate key: `spatial`
-- label key: `parcellation_division`
+3. `python -m ipykernel install --user --name 4761-project --display-name "Python (4761-project)"`
 
+**Why this helps:** it makes the “correct Python” show up as a selectable kernel in Jupyter, so notebooks reliably use your project’s `.venv` (instead of a different system Python where packages may be missing).
 
-### Expected sample output
+Then in JupyterLab: Kernel → Change Kernel → **Python (4761-project)**.
 
-The command creates a folder under `outputs/` named from the run parameters, for example:
+## Step-by-step: run everything (in order)
 
-```text
-outputs/hmrf_label-parcellation_division_beta-20_K-15_init-kmeans_k-8_alpha-0p2_em-10_icm-5_seed-0/
-```
+### 1) Install dependencies
 
-Inside it, the main saved files are:
-- `config.json`
-- `metrics_summary.csv`
-- `metrics_summary.json`
-- `baseline_kmeans/`
-- `hmrf/`
-- optional `adata_with_hmrf.h5ad`
+Complete the install steps in **Dependencies and Installation** above.
 
-Inside `baseline_kmeans/` or `hmrf/`, you will find:
+### 2) Download the MERFISH/Allen data (cache it locally)
 
-- `metrics.csv`
-- `metrics.json`
-- `confusion_counts.csv`
-- `confusion_normalized.csv`
-- `confusion_heatmap.png`
-- `per_region_accuracy.csv`
-- `per_region_accuracy.png`
-- `spatial.png` or HMRF spatial plot image
-- `*_states.csv`
-- `*_states.npy`
-- `label_mapping.json`
+Launch Jupyter and run the download/cache cells in:
 
-The HMRF folder also includes:
+- `notebooks/exploreAllen.ipynb` (recommended starting point), or `notebooks/MERFISH.ipynb`.
 
-- `hmrf_result.npz`
-- `energy_history.png`
+Launch JupyterLab from your activated virtual environment: `jupyter lab`
 
-## How To Run on Another Input File
+Downloads will be cached under `data/abc_atlas/`.
 
-The packaged runner supports an explicit input path:
+### 3) Preprocess into an `.h5ad` that AW-HMRF can use
 
-```bash
-python3 scripts/run_aw_hmrf_once.py \
-  --adata-path /path/to/input_data.h5ad \
-  --beta 20 \
-  --label-key parcellation_division \
-  --n-regions 20 \
-  --init-method leiden \
-  --leiden-resolution 0.6 \
-  --k 12 \
-  --alpha 0.2 \
-  --max-em-iter 10 \
-  --max-icm-iter 5 \
-  --random-state 0 \
-  --save-adata
-```
+In `notebooks/MERFISH.ipynb`, create/save an `.h5ad` that contains:
 
-Important assumptions for the current packaged workflow:
+- `adata.obsm["spatial"]` (coordinates)
+- `adata.obsm["X_pca"]` (embedding)
+- `adata.obs[<label-key>]` (optional but recommended for evaluation)
 
-- the input `.h5ad` must contain `adata.obsm["X_pca"]`
-- the input `.h5ad` must contain `adata.obsm["spatial"]`
-- the label column passed by `--label-key` must exist in `adata.obs`
+See the **“Download + preprocessing”** section below for a concrete recipe.
 
-## Parameters
+### 4) Run AW-HMRF
 
-### Required
+You can run AW-HMRF either:
+
+- **In a notebook** (good for plots): use `notebooks/aw_hmrf_data.ipynb` / `notebooks/Eval_whole_section.ipynb` (project-specific), or
+- **Via the reproducible script** (good for saving outputs):
+  - Run `python scripts/run_aw_hmrf_once.py` and pass `--adata-path` pointing to your processed `.h5ad`, plus HMRF parameters like `--beta` and `--n-regions`.
+
+## Quick “does it run?” test (sample inputs)
+
+### 1) Dependency smoke check
+
+Run `python scripts/check_dependencies.py` from your activated environment to confirm imports are available.
+
+### 2) Toy binary MRF demo (fast)
+
+Run `python scripts/demo_spatial_mrf.py` from your activated environment.
+
+Expected behavior: prints inferred states for a tiny toy graph and opens/saves a matplotlib visualization window.
+
+### 3) Toy AW-HMRF demo (notebook)
+
+Run `notebooks/aw_hmrf_toy.ipynb` (or `notebooks/aw_hmrf.ipynb`) top-to-bottom.
+Expected behavior: KMeans baseline vs HMRF results improve as \(\\beta\) increases on the toy grid.
+
+## Running the AW-HMRF runner script (reproducible experiment)
+
+### Minimal run on the default sample `.h5ad`
+
+Run `scripts/run_aw_hmrf_once.py` on the default sample input (`data/adata_sub.h5ad`) and set parameters such as:
 
 - `--beta`
-  Spatial coupling strength for the HMRF.
-
-### Commonly changed
-
-- `--adata-path`
-  Input `.h5ad` path. Default is `data/adata_sub.h5ad`.
-
 - `--label-key`
-  Ground-truth atlas label column in `adata.obs`. Also used as the remap and color-alignment reference.
-
 - `--n-regions`
-  Number of HMRF regions/clusters.
-
-- `--init-method {kmeans,leiden}`
-  Initialization method for the baseline and for the initial HMRF state assignment.
-
-- `--leiden-resolution`
-  Leiden resolution. Only used when `--init-method leiden`.
-
-- `--k`
-  Number of neighbors used in the anatomy-weighted kNN graph.
-
-- `--alpha`
-  Penalty weight for edges crossing different atlas labels or involving missing labels.
-
-- `--max-em-iter`
-  Maximum number of EM iterations.
-
-- `--max-icm-iter`
-  Maximum number of ICM sweeps inside each EM iteration.
-
+- `--init-method`
+- `--k`, `--alpha`
+- `--max-em-iter`, `--max-icm-iter`
 - `--random-state`
-  Random seed for reproducibility.
+- `--save-adata` (optional)
 
-- `--save-adata`
-  If set, save an output `.h5ad` with predicted columns written into `obs` and visualization colors written into `uns`.
+This assumes your input `.h5ad` contains:
 
-### Advanced
+- `adata.obsm["X_pca"]` (embedding; default key is `X_pca`)
+- `adata.obsm["spatial"]` (coordinates; default key is `spatial`)
+- `adata.obs[<label-key>]` (ground truth / atlas label column)
 
-- `--tol`
-  Convergence threshold based on fraction of changed states.
+### Outputs
 
-- `--energy-tol`
-  Optional convergence threshold based on energy improvement.
+The script writes a parameter-named directory under `outputs/` containing:
 
-- `--spot-size`
-  Marker size for spatial plots.
+- run config + summary metrics (`metrics_summary.csv/json`)
+- baseline folder (`baseline_kmeans/` or baseline Leiden if chosen)
+- `hmrf/` folder including `hmrf_result.npz` and `energy_history.png`
+- optional output `.h5ad` if `--save-adata` is set
 
-- `--output-root`
-  Root directory for all run outputs.
+## Running on real MERFISH / large `.h5ad` files
 
-## Running Larger Experiments
+### Recommended workflow
 
-For larger files, the same script can be used, but you should be more careful with parameter choices and memory:
+1. Use `notebooks/MERFISH.ipynb` to select a **single brain section** (or a subset).
+2. Ensure you have:
+   - embeddings in `adata.obsm["X_pca"]` (or update the runner to a different key)
+   - coordinates in `adata.obsm["spatial"]`
+3. Run `scripts/run_aw_hmrf_once.py` on that `.h5ad` first.
+4. Scale up gradually:
+   - increase cell count
+   - tune graph \(k\), \\(\\alpha\\), and \\(\\beta\\)
+   - keep `max-em-iter` / `max-icm-iter` modest until you trust runtime
 
-```bash
-python3 scripts/run_aw_hmrf_once.py \
-  --adata-path /path/to/large_data.h5ad \
-  --beta 20 \
-  --label-key parcellation_division \
-  --n-regions 20 \
-  --init-method kmeans \
-  --k 8 \
-  --alpha 0.2 \
-  --max-em-iter 10 \
-  --max-icm-iter 5 \
-  --random-state 0 \
-  --output-root outputs/large_runs \
-  --save-adata
-```
+### Public “large data” files and where to get them (Allen MERFISH / ABC Atlas)
 
-Suggestions for larger runs:
+This project uses the Allen Institute **ABC Atlas MERFISH (Zhuang ABCA)** releases. These are public and are accessed via the `abc_atlas_access` Python package (see `requirements-notebooks.txt`).
 
-- start with `kmeans` initialization before trying `leiden`
-- keep `max-em-iter` and `max-icm-iter` modest at first
-- test on a subset before scaling up
-- confirm that the target `label_key`, `X_pca`, and `spatial` keys exist in the larger file
-- avoid saving too many very large `.h5ad` outputs unless you need them
+- **Dataset directory**: `Zhuang-ABCA-1`
+  - **Expression matrices** (large `.h5ad`; exact names can vary by manifest):
+    - `Zhuang-ABCA-1-log2.h5ad`
+    - `Zhuang-ABCA-1-raw.h5ad`
+  - **Metadata**:
+    - `cell_metadata.csv`
 
-## Batch Experiments
+- **CCF-aligned directory**: `Zhuang-ABCA-1-CCF`
+  - **Metadata** (includes CCF/parcellation label columns used as ground truth):
+    - `cell_metadata.csv`
 
-The packaged runner is designed to be called from shell loops. Example:
+**How to fetch/download**:
 
-```bash
-for k in 5 8 12
-do
-  for alpha in 0.1 0.2 0.3
-  do
-    python3 scripts/run_aw_hmrf_once.py \
-      --beta 20 \
-      --label-key parcellation_division \
-      --n-regions 20 \
-      --init-method kmeans \
-      --k $k \
-      --alpha $alpha \
-      --max-em-iter 10 \
-      --max-icm-iter 5 \
-      --random-state 0 \
-      --save-adata
-  done
-done
-```
+- Use `notebooks/exploreAllen.ipynb`, `notebooks/MERFISH.ipynb`, or `data/merfish_download.py`.
+- Allen tutorial/reference: `https://alleninstitute.github.io/abc_atlas_access/notebooks/zhuang_merfish_tutorial.html`
 
-## How To Verify a Run
+Downloaded files are cached under `data/abc_atlas/` (ignored by git).
 
-After a run finishes, the easiest checks are:
+### Download + preprocessing (make an `.h5ad` you can run HMRF on)
 
-1. Confirm that a new parameter-named folder appears under `outputs/`.
-2. Open `metrics_summary.csv` to compare the initialization baseline against HMRF.
-3. Inspect `hmrf/energy_history.png` for convergence behavior.
-4. Inspect the spatial plot and confusion outputs in `baseline_*` and `hmrf/`.
+You ultimately need a single `.h5ad` that contains:
 
-## Notes
+- `adata.obsm["spatial"]`: spatial coordinates per cell (x,y or x,y,z)
+- `adata.obsm["X_pca"]`: an embedding matrix (e.g. PCA)
+- `adata.obs[<label-key>]`: atlas labels to evaluate against (optional but recommended)
 
-- This repository does not currently provide a separate unit-test suite for the AW-HMRF workflow.
-- The closest thing to a smoke test is a successful run of `scripts/run_aw_hmrf_once.py` on `data/adata_sub.h5ad`.
-- The notebooks are useful for analysis and figure generation, but the main packaged functionality is the single-run experiment script plus the model/evaluation utilities it calls.
-- Input file can be found: https://drive.google.com/drive/folders/1x53B99t8_zQT6-XRPv0exo2rGay_WBVZ?usp=drive_link; Those are data embedded with PCA, for raw MERFISH data: https://alleninstitute.github.io/abc_atlas_access/notebooks/zhuang_merfish_tutorial.html
+#### Step 1: download/cache the Allen files
+
+If you already have the Allen cache files in this repo under `data/abc_atlas/`, you do **not** need to download anything.
+
+To “get the data” into your notebook session, do the following:
+
+1. Activate your environment, then start JupyterLab: `source .venv/bin/activate` then `jupyter lab`
+2. Open `notebooks/exploreAllen.ipynb` (or `notebooks/MERFISH.ipynb`)
+3. Run the first cells that create an `AbcProjectCache` pointing at `../data/abc_atlas`
+4. Run the cells that load the latest manifest and list available directories/matrices (this verifies the cache is being found)
+
+If the cache is missing, those same notebooks will download it automatically via `abc_atlas_access` into `data/abc_atlas/`.
+
+#### Step 2: build an `AnnData` for a single section (recommended)
+
+Working section-by-section keeps memory manageable.
+
+In `notebooks/MERFISH.ipynb`, select a target section (e.g. one `brain_section_label`), load only those cells from the expression matrix into memory, and write spatial coordinates into `adata.obsm["spatial"]`.
+
+#### Step 3: preprocessing + PCA embedding (`X_pca`)
+
+In `notebooks/MERFISH.ipynb`, run standard Scanpy preprocessing (normalize + log1p + HVGs + PCA) to create `adata.obsm["X_pca"]`.
+
+#### Step 4: save your processed `.h5ad`
+
+Save the processed AnnData to a local file under `data/` (for example `data/Zhuang_1080_embedded.h5ad`).
+
+You can now run `scripts/run_aw_hmrf_once.py` and point `--adata-path` at that file.
+
+### Key parameters (runner)
+
+- `--beta`: spatial coupling strength (higher → smoother labels).
+- `--n-regions`: number of clusters/states \(K\).
+- `--k`: neighbors in kNN graph.
+- `--alpha`: downweight/penalize edges crossing atlas labels or missing labels (see `build_anatomy_weighted_knn_graph`).
+- `--init-method`: `{kmeans, leiden}` baseline/initialization.
+- `--max-em-iter`, `--max-icm-iter`: runtime vs quality knobs.
+- `--tol`, `--energy-tol`: convergence thresholds.
+
+## Notes / limitations
+
+- This repo currently has **no formal unit test suite**. The recommended smoke tests are the toy demos/notebooks and a successful `run_aw_hmrf_once.py` run.
+- Some local data under `data/` (Allen cache + `.h5ad` artifacts) can be very large and is ignored by `.gitignore`.
 
